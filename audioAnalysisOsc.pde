@@ -17,8 +17,7 @@ import ddf.minim.*;
 import ddf.minim.ugens.*;
 import ddf.minim.analysis.*;//For freq spectrum etc
 Minim minim;//instantiate a minim object for sound
-AudioInput in;
-AudioPlayer song;
+AudioSource audio;
 BeatDetect beat0;//Beat detect mode sound energy (spikes of the level)
 BeatDetect beat;//Beat detect mode frequency (tracks different part of spectrum)
 BeatListener bl;//For beat
@@ -51,18 +50,19 @@ void setup() {
   smooth(5); 
   //SOUND initialisation
   minim = new Minim(this);
-  song = minim.loadFile("Jungle.wav");
-  song.play();
-  //If want to use AudioInput: replace "song" by "in"...
-  in = minim.getLineIn();
+  //  Uncomment the 2 lines below to use loaded sound file instead of audio input
+  audio = minim.loadFile("Jungle.wav");
+  ((AudioPlayer)audio).play();
+  //  Uncomment line below If want to use AudioInput
+  //audio = minim.getLineIn();
   // FFT : precise how long the audio buffers it has to analyse
-  fftLin = new FFT(song.bufferSize(), song.sampleRate());
+  fftLin = new FFT(audio.bufferSize(), audio.sampleRate());
   fftLin.linAverages(30); //averages by grouping frequency bands linearly. use 30 averages.
-  fftLog = new FFT( song.bufferSize(), song.sampleRate() );  //logarithmically spaced averages
+  fftLog = new FFT( audio.bufferSize(), audio.sampleRate() );  //logarithmically spaced averages
   fftLog.logAverages( 22, 3);  // Mini octave width of 22 Hz & split each octave into three bands> results in 30 averages
-  beat = new BeatDetect(song.bufferSize(), song.sampleRate());//beat.detect(song.mix);
+  beat = new BeatDetect(audio.bufferSize(), audio.sampleRate());//beat.detect(song.mix);
   beat.setSensitivity(20);  
-  bl = new BeatListener(beat, song);    //make a new beat listener
+  bl = new BeatListener(beat, audio);    //make a new beat listener
   //Beat detect (sound energy)
   beat0 = new BeatDetect();
   // bl0 = new BeatListener(beat0, song);
@@ -79,12 +79,12 @@ counter++;
 strokeWeight(2);
 background(0);
 //FFT
-fftLin.forward(song.mix);//i.e. applied to the mix right and left
-fftLog.forward(song.mix);
+fftLin.forward(audio.mix);//i.e. applied to the mix right and left
+fftLog.forward(audio.mix);
 //fft.forward(song.mix);
 
 //PARAM 0: level of the sound
-float currentlevel=song.mix.level();
+float currentlevel=audio.mix.level();
 sound_param[0]=currentlevel;
 //White rectangle if level reach peak, according to sensibility
 if (localpeak(sens)>0){ rect(0,0,width,height); fill(255,255,255,200);}
@@ -93,7 +93,7 @@ if (localpeak(sens)>0){ rect(0,0,width,height); fill(255,255,255,200);}
 sound_param[1]=(float) findNote();//Suppose to detect which is the global note. Not that useful in an impure mix.
 
 //PARAM 2: if beat (beat0) detected: 1, else 0:
-beat0.detect(song.mix);
+beat0.detect(audio.mix);
 radius *= 0.80;
 if (beat0.isOnset()) {radius=400;sound_param[2]=(float)1;
 }  
@@ -145,8 +145,8 @@ void keyPressed() {
 //SOUND FCT:::::::
 class BeatListener implements AudioListener{
   private BeatDetect beat;
-  private AudioPlayer source; 
-  BeatListener(BeatDetect beat, AudioPlayer source){
+  private AudioSource source; 
+  BeatListener(BeatDetect beat, AudioSource source){
     this.source = source;
     this.source.addListener(this);
     this.beat = beat;
@@ -159,7 +159,7 @@ class BeatListener implements AudioListener{
 }
 
 void stop(){// Close Minim audio classes once finish
-  song.close();
+  audio.close();
   minim.stop();
   super.stop();
 }
